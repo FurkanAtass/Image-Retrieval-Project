@@ -1,0 +1,88 @@
+
+[
+    {
+      "query": "a concert with bright lights and a crowd",
+      "top_results": [
+        "Beyoncé_stage.jpg",
+        "Taylor_Swift_concert.jpg"
+      ]
+    },
+    {
+      "query": "close up portrait of a person",
+      "top_results": [
+        "Angelina_Jolie_face_close_up.jpg",
+        "Brad_Pitt_portrait.jpg",
+        "Chris_Evans_portrait.jpg",
+        "Elon_Musk_portrait.jpg",
+        "Emma_Watson_portrait.jpg",
+        "Leonardo_DiCaprio_face.jpg",
+        "Natalie_Portman_face.jpg",
+        "Rihanna_portrait.jpg",
+        "Robert_Downey_Jr._sunglasses.jpg",
+        "Tom_Cruise_smiling.jpg"
+
+      ]
+    },
+    {
+      "query": "woman on a red carpet",
+      "top_results": [
+        "Scarlett_Johansson_red_carpet.jpg",
+        "Margot_Robbie_red_carpet.jpg"
+
+      ]
+    },
+    {
+      "query": "night skyline with lights",
+      "top_results": [
+        "city_skyline_night.jpg",
+        "night_sky_stars.jpg"
+      ]
+    },
+    {
+      "query": "quiet place to study with books and desks",
+      "top_results": [
+        "library_reading_room.jpg",
+        "office_desk_workspace.jpg",
+        "notebook_handwritten_notes.jpg"
+      ]
+    },
+    {
+      "query": "food on a table during a meal",
+      "top_results": [
+        "restaurant_food_table.jpg",
+        "breakfast_eggs_toast.jpg"
+      ]
+    },
+    {
+      "query": "a screenshot from a phone showing messages or apps",
+      "top_results": [
+        "whatsapp_chat_screenshot.jpg",
+        "instagram_profile_screenshot.jpg",
+        "email_inbox_screenshot.jpg"
+      ]
+    },
+    {
+      "query": "travel scene with luggage and transportation",
+      "top_results": [
+        "airport_waiting_area.jpg",
+        "suitcase_packing.jpg",
+        "bus_stop_rain.jpg"
+      ]
+    },
+    {
+      "query": "outdoor nature scene",
+      "top_results": [
+        "lake_reflection.jpg",
+        "river_landscape.jpg",
+        "ocean_waves.jpg"
+      ]
+    },
+    {
+      "query": "a casual photo of people spending time together",
+      "top_results": [
+        "group_photo_friends.jpg",
+        "family_dinner_table.jpg"
+      ]
+    }
+  ]
+  
