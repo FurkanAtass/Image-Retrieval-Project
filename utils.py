@@ -86,8 +86,7 @@ def rank_images(embeddings: list[dict], txt_query_embeddings: Optional[torch.Ten
     scores = []
     for embedding in embeddings:
         # Convert embedding list to tensor if it's a list
-        # TODO: handle other embedding types hvvhjvjgkjvgkvgjvgjkgvgvjkvgvgjjgvvgjgjv
-        fuse_emb = embedding['fuse_embedding']
+        fuse_emb = embedding[f'{embedding_type}_embedding']
         if isinstance(fuse_emb, list):
             fuse_emb = torch.tensor(fuse_emb)
         score = cosine(v, fuse_emb)

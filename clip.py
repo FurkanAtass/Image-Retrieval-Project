@@ -30,7 +30,7 @@ def embed_text(text: str) -> torch.Tensor:
 
 
 
-def compute_embeddings(image_folder: str, image_descriptions_file: str) -> list[dict]:
+def compute_embeddings(image_folder: str, image_descriptions_file: str, embeddings_file: str) -> list[dict]:
     """
     Compute embeddings for all images in the image folder and save to a list of dictionaries.
     """
@@ -48,7 +48,7 @@ def compute_embeddings(image_folder: str, image_descriptions_file: str) -> list[
             'text_embedding': v_txt.tolist(),
             'fuse_embedding': v.tolist(),
         })
-    save_embeddings(embeddings, "clip_embeddings.json")
+    save_embeddings(embeddings, embeddings_file)
     return embeddings
 
 
@@ -86,7 +86,7 @@ def main():
         generate_image_descriptions(image_folder, image_descriptions_file)
     if not Path(embeddings_file).exists():
         print(f"Embeddings File {embeddings_file} does not exist")
-        embeddings = compute_embeddings(image_folder, image_descriptions_file)
+        embeddings = compute_embeddings(image_folder, image_descriptions_file, embeddings_file)
     else:
         embeddings = load_embeddings(embeddings_file)
 
