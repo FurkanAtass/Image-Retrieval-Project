@@ -4,11 +4,23 @@ from PIL import Image
 import json
 from pathlib import Path
 import torch
-from typing import List, Literal, Optional
+import numpy as np
+from typing import List, Literal, Optional, Union
 
 
-def cosine(a: torch.Tensor, b: torch.Tensor) -> float:
-    """Cosine similarity for already-normalized vectors."""
+def cosine(a: Union[torch.Tensor, np.ndarray], b: Union[torch.Tensor, np.ndarray]) -> float:
+    """Cosine similarity for already-normalized vectors. Handles both torch tensors and numpy arrays."""
+    # Convert numpy arrays to torch tensors with float32 dtype if needed
+    if isinstance(a, np.ndarray):
+        a = torch.from_numpy(a).float()
+    elif isinstance(a, torch.Tensor):
+        a = a.float()
+    
+    if isinstance(b, np.ndarray):
+        b = torch.from_numpy(b).float()
+    elif isinstance(b, torch.Tensor):
+        b = b.float()
+    
     return float(torch.dot(a, b))
 
 def fuse_embeddings(
@@ -86,10 +98,10 @@ def rank_images(embeddings: list[dict], txt_query_embeddings: Optional[torch.Ten
     scores = []
     for embedding in embeddings:
         # Convert embedding list to tensor if it's a list
-        fuse_emb = embedding[f'{embedding_type}_embedding']
-        if isinstance(fuse_emb, list):
-            fuse_emb = torch.tensor(fuse_emb)
-        score = cosine(v, fuse_emb)
+        chosen_emb = embedding[f'{embedding_type}_embedding']
+        if isinstance(chosen_emb, list):
+            chosen_emb = torch.tensor(chosen_emb)
+        score = cosine(v, chosen_emb)
         scores.append({
             'filename': embedding['filename'],
             'description': embedding['description'],
