@@ -83,6 +83,177 @@
         "group_photo_friends.jpg",
         "family_dinner_table.jpg"
       ]
+    },
+    
+    {
+      "query_image": "foggy_road_with_traffic_sign.jpg",
+      "top_results": [
+        "foggy_morning_road.jpg",
+        "bus_stop_rain.jpg",
+        "autumn_park.jpg"
+      ]
+    },
+    {
+      "query_image": "modern_cozy_cafe_interior.jpg",
+      "top_results": [
+        "cafe_interior_cozy.jpg",
+        "coffee_cup_table.jpg",
+        "coffee_latte_art.jpg"
+      ]
+    },
+    {
+      "query_image": "city_view_from_balcony_with_table.jpg",
+      "top_results": [
+        "balcony_city_view.jpg",
+        "golden_hour_city.jpg",
+        "city_skyline_night.jpg"
+      ]
+    },
+    {
+      "query_image": "frozen_lake_winter_landscape.jpg",
+      "top_results": [
+        "frozen_lake_winter.jpg",
+        "snowy_forest.jpg",
+        "full_moon_sky.jpg"
+      ]
+    },
+    {
+      "query_image": "people_cycling_on_city_street.jpg",
+      "top_results": [
+        "bicycle_street.jpg",
+        "street_photography_people",
+        "traffic_street_daytime.jpg"
+      ]
+    },
+    {
+      "query_image": "family_eating_dinner_at_home.jpg",
+      "top_results": [
+        "family_dinner_table.jpg",
+        "homemade_dinner_table.jpg",
+        "restaurant_food_table.jpg"
+      ]
+    },
+    {
+      "query_image": "desert_sand_dunes_landscape.jpg",
+      "top_results": [
+        "desert_sand_dunes.jpg",
+        "cliff_seaside.jpg",
+        "green_valley.jpg"
+      ]
+    },
+    {
+      "query_image": "close_up_burger_food_photography.jpg",
+      "top_results": [
+        "burger_fast_food.jpg",
+        "restaurant_food_table.jpg",
+        "dessert_cake_slice.jpg"
+      ]
+    },
+    {
+      "query_image": "laptop_desk_with_glasses_and_pen.jpg",
+      "top_results": [
+        "glasses_on_desk.jpg",
+        "office_desk_workspace.jpg",
+        "notebook_handwritten_notes.jpg"
+      ]
+    },
+    {
+      "query_image": "university_lecture_hall.jpg",
+      "top_results": [
+        "classroom_lecture.jpg",
+        "library_reading_room.jpg",
+        "office_desk_workspace.jpg"
+      ]
+    },
+    {
+      "query": "a quiet place to focus and think",
+      "query_image": "desk_with_notebook_and_glasses.jpg",
+      "top_results": [
+        "glasses_on_desk.jpg",
+        "office_desk_workspace.jpg",
+        "library_reading_room.jpg"
+      ]
+    },
+    {
+      "query": "a relaxing morning breakfast",
+      "query_image": "avocado_toast_with_egg.jpg",
+      "top_results": [
+        "breakfast_eggs_toast.jpg",
+        "coffee_cup_table.jpg",
+        "fruit_bowl_kitchen.jpg"
+      ]
+    },
+    {
+      "query": "waiting before a trip",
+      "query_image": "airport_terminal_seating.jpg",
+      "top_results": [
+        "airport_waiting_area.jpg",
+        "flight_ticket_screenshot.jpg",
+        "suitcase_packing.jpg"
+      ]
+    },
+    {
+      "query": "walking together while traveling",
+      "query_image": "couple_walking_in_european_street.jpg",
+      "top_results": [
+        "couple_walking_street.jpg",
+        "backpack_travel.jpg",
+        "street_photography_people"
+      ]
+    },
+    {
+      "query": "something sweet after dinner",
+      "query_image": "chocolate_cake_slice.jpg",
+      "top_results": [
+        "dessert_cake_slice.jpg",
+        "ice_cream_cone.jpg",
+        "coffee_latte_art.jpg"
+      ]
+    },
+    {
+      "query": "planning my schedule",
+      "query_image": "mobile_calendar_app_screenshot.jpg",
+      "top_results": [
+        "calendar_app_screenshot.jpg",
+        "email_inbox_screenshot.jpg",
+        "meeting_notes_paper.jpg"
+      ]
+    },
+    {
+      "query": "cold and quiet winter scenery",
+      "query_image": "snow_covered_frozen_lake.jpg",
+      "top_results": [
+        "frozen_lake_winter.jpg",
+        "snowy_forest.jpg",
+        "foggy_morning_road.jpg"
+      ]
+    },
+    {
+      "query": "evening walk in the city",
+      "query_image": "city_street_at_sunset.jpg",
+      "top_results": [
+        "golden_hour_city.jpg",
+        "city_skyline_night.jpg",
+        "street_photography_people.jpg"
+      ]
+    },
+    {
+      "query": "working from home setup",
+      "query_image": "laptop_and_notebook_on_desk.jpg",
+      "top_results": [
+        "office_desk_workspace.jpg",
+        "glasses_on_desk.jpg",
+        "coffee_cup_table.jpg"
+      ]
+    },
+    {
+      "query": "a peaceful place surrounded by nature",
+      "query_image": "green_valley_with_river.jpg",
+      "top_results": [
+        "green_valley.jpg",
+        "river_landscape.jpg",
+        "autumn_park.jpg"
+      ]
     }
   ]
   

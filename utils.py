@@ -75,33 +75,31 @@ def load_embeddings(input_file: str) -> list[dict]:
         embeddings = json.load(jsonfile)
     return embeddings
 
-def rank_images(embeddings: list[dict], txt_query_embeddings: Optional[torch.Tensor] = None, image_query_embeddings: Optional[torch.Tensor] = None, embedding_type: Optional[Literal["fuse", "image", "text"]] = 'fuse') -> list[dict]:
+def rank_images(
+    embeddings: list[dict], 
+    txt_query_embeddings: Optional[torch.Tensor] = None, 
+    image_query_embeddings: Optional[torch.Tensor] = None, 
+    alpha: float = 0.7,
+) -> list[dict]:
     if txt_query_embeddings is None and image_query_embeddings is None:
         raise ValueError("Need text or image query")
 
-    v_txt = None
-    v_img = None
-    if txt_query_embeddings is not None:
-        v_txt = txt_query_embeddings
-    if image_query_embeddings is not None:
-        v_img = image_query_embeddings
-    
-    if embedding_type == 'fuse':
-        v = fuse_embeddings(v_img, v_txt)
-    elif embedding_type == 'image':
-        v = v_img
-    elif embedding_type == 'text':
-        v = v_txt
-    else:
-        raise ValueError(f"Invalid embedding type: {embedding_type}")
-
     scores = []
+    txt_score = None
+    image_score = None
     for embedding in embeddings:
-        # Convert embedding list to tensor if it's a list
-        chosen_emb = embedding[f'{embedding_type}_embedding']
-        if isinstance(chosen_emb, list):
-            chosen_emb = torch.tensor(chosen_emb)
-        score = cosine(v, chosen_emb)
+        if txt_query_embeddings is not None:
+            txt_score = cosine(txt_query_embeddings, torch.tensor(embedding['text_embedding']))
+        elif image_query_embeddings is not None:
+            image_score = cosine(image_query_embeddings, torch.tensor(embedding['image_embedding']))
+        
+        if txt_score is not None and image_score is not None:
+            score = (alpha * txt_score + (1.0 - alpha) * image_score)
+        elif txt_score is not None:
+            score = txt_score
+        elif image_score is not None:
+            score = image_score
+
         scores.append({
             'filename': embedding['filename'],
             'description': embedding['description'],
@@ -109,18 +107,24 @@ def rank_images(embeddings: list[dict], txt_query_embeddings: Optional[torch.Ten
         })
     return sorted(scores, key=lambda x: x['score'], reverse=True)
 
-def show_test_results(test_results: list[dict], image_folder: str = 'images') -> None:
+def show_test_results(test_results: list[dict], image_folder: str = 'images', query_image_folder: str = None) -> None:
     """
     Visualize test results interactively with predictions on left and ground truth on right.
     Shows number of predicted images = ground_truth_count + 1
+    Handles text-only, image-only, or both text and image queries.
     User presses Enter in the visualization window to go to next result.
     """    
     plt.ion()  # Turn on interactive mode
     
     for idx, result in enumerate(test_results, 1):
-        query = result['query']
+        query = result.get('query', None)
+        query_image = result.get('query_image', None)
         ground_truth = result['ground_truth']
         ranked_results = result['ranked_results']
+        
+        # Determine query type
+        has_text = query is not None and query.strip() != ""
+        has_image = query_image is not None
         
         # Number of predictions to show = ground truth count + 1
         num_predictions = len(ground_truth) + 1
@@ -136,8 +140,10 @@ def show_test_results(test_results: list[dict], image_folder: str = 'images') ->
         image_height_per_row = 2  # Height per image row in inches
         
         # Calculate desired size based on number of images
+        # Add extra row if we need to show query image
+        query_row_needed = 1 if has_image else 0
         desired_width = base_width
-        desired_height = num_predictions * image_height_per_row
+        desired_height = (num_predictions + query_row_needed) * image_height_per_row
         
         # Scale down proportionally if figure would be too large for screen
         # Use the more restrictive scale (smaller value) to ensure it fits both dimensions
@@ -151,15 +157,56 @@ def show_test_results(test_results: list[dict], image_folder: str = 'images') ->
         
         # Create figure with scaled size
         fig = plt.figure(figsize=(fig_width, fig_height))
-        fig.suptitle(f'Test {idx}/{len(test_results)}: Query: "{query}"\nPress Enter to continue...', 
+        
+        # Build title based on query type
+        query_info = []
+        if has_text:
+            query_info.append(f'Text: "{query}"')
+        if has_image:
+            query_info.append(f'Image: {query_image}')
+        query_str = " | ".join(query_info) if query_info else "No query specified"
+        
+        fig.suptitle(f'Test {idx}/{len(test_results)}: {query_str}\nPress Enter to continue...', 
                     fontsize=16, fontweight='bold')
         
-        # Create grid: 2 columns, max(num_predictions, num_ground_truth) rows
-        gs = gridspec.GridSpec(num_predictions, 2, figure=fig, hspace=0.3, wspace=0.2)
+        # Create grid: 3 columns if query image exists, else 2 columns
+        # Columns: Query (if image), Predictions, Ground Truth
+        num_cols = 3 if has_image else 2
+        num_rows = num_predictions + query_row_needed
+        gs = gridspec.GridSpec(num_rows, num_cols, figure=fig, hspace=0.3, wspace=0.2)
         
-        # Left column: Predictions
+        # Display query image if present (first column, first row, spanning all rows if needed)
+        if has_image and query_image_folder:
+            try:
+                query_img_path = f"{query_image_folder}/{query_image}"
+                if Path(query_img_path).exists():
+                    query_img = Image.open(query_img_path)
+                    # Query image spans all rows in first column
+                    ax_query = fig.add_subplot(gs[:, 0])
+                    ax_query.imshow(query_img)
+                    ax_query.set_title('QUERY IMAGE', fontsize=12, fontweight='bold', pad=10)
+                    ax_query.axis('off')
+                else:
+                    ax_query = fig.add_subplot(gs[:, 0])
+                    ax_query.text(0.5, 0.5, f'Query image\nnot found:\n{query_image}', 
+                                ha='center', va='center', transform=ax_query.transAxes)
+                    ax_query.set_title('QUERY IMAGE', fontsize=12, fontweight='bold')
+                    ax_query.axis('off')
+            except Exception as e:
+                ax_query = fig.add_subplot(gs[:, 0])
+                ax_query.text(0.5, 0.5, f'Error loading\nquery image:\n{str(e)}', 
+                            ha='center', va='center', transform=ax_query.transAxes)
+                ax_query.set_title('QUERY IMAGE', fontsize=12, fontweight='bold')
+                ax_query.axis('off')
+        
+        # Column indices adjustment based on whether query image is shown
+        pred_col = 1 if has_image else 0
+        gt_col = 2 if has_image else 1
+        
+        # Predictions column
         for i, pred in enumerate(predicted_images):
-            ax = fig.add_subplot(gs[i, 0])
+            row_idx = i + query_row_needed  # Offset by query row if present
+            ax = fig.add_subplot(gs[row_idx, pred_col])
             try:
                 img_path = f"{image_folder}/{pred['filename']}"
                 if Path(img_path).exists():
@@ -178,12 +225,17 @@ def show_test_results(test_results: list[dict], image_folder: str = 'images') ->
             ax.axis('off')
         
         # Add column header for predictions
-        fig.text(0.25, 0.98, f'PREDICTED (Top {num_predictions})', 
+        if has_image:
+            pred_x = 0.42  # Middle column
+        else:
+            pred_x = 0.25  # Left column
+        fig.text(pred_x, 0.98, f'PREDICTED (Top {num_predictions})', 
                 ha='center', fontsize=12, fontweight='bold', transform=fig.transFigure)
         
-        # Right column: Ground Truth
+        # Ground Truth column
         for i, gt_filename in enumerate(ground_truth):
-            ax = fig.add_subplot(gs[i, 1])
+            row_idx = i + query_row_needed  # Offset by query row if present
+            ax = fig.add_subplot(gs[row_idx, gt_col])
             try:
                 img_path = f"{image_folder}/{gt_filename}"
                 if Path(img_path).exists():
@@ -205,7 +257,11 @@ def show_test_results(test_results: list[dict], image_folder: str = 'images') ->
             ax.axis('off')
         
         # Add column header for ground truth
-        fig.text(0.75, 0.98, f'GROUND TRUTH ({num_ground_truth})', 
+        if has_image:
+            gt_x = 0.75  # Right column
+        else:
+            gt_x = 0.75  # Right column
+        fig.text(gt_x, 0.98, f'GROUND TRUTH ({num_ground_truth})', 
                 ha='center', fontsize=12, fontweight='bold', transform=fig.transFigure)
         
         # Make figure active and bring to front

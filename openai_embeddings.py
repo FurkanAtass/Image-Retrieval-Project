@@ -91,7 +91,7 @@ def compute_embeddings(image_folder: str, image_descriptions_file: str, embeddin
     return embeddings
 
 
-def generate_test_results(embeddings: list[dict], test_cases_file: str) -> list[dict]:
+def generate_test_results(embeddings: list[dict], test_cases_file: str, query_image_folder: str) -> list[dict]:
     """
     Generate test results for a list of test cases.
     """
@@ -99,11 +99,16 @@ def generate_test_results(embeddings: list[dict], test_cases_file: str) -> list[
     results = []
     
     for idx, test_case in enumerate(test_cases, 1):
-        print(f"Processing test case {idx}/{len(test_cases)}: '{test_case['query']}'...")
-        txt_query_embeddings = embed_text(test_case['query'])
-        rank_results = rank_images(embeddings, txt_query_embeddings, embedding_type='text')
+        print(f"Processing test case {idx}/{len(test_cases)}: '{test_case['query'] if test_case.get('query', None) is not None else test_case['query_image']}'...")
+
+        img_query_embeddings = embed_image(f"{query_image_folder}/{test_case['query_image']}") if test_case.get('query_image', None) is not None else None
+  
+        txt_query_embeddings = embed_text(test_case['query']) if test_case.get('query', None) is not None else None
+
+        rank_results = rank_images(embeddings, txt_query_embeddings, img_query_embeddings)
         results.append({
-            'query': test_case['query'],
+            'query': test_case.get('query', None),
+            'query_image': test_case.get('query_image', None),
             'ground_truth': test_case['top_results'],
             'ranked_results': rank_results
         })
@@ -118,6 +123,7 @@ def main():
     image_descriptions_file = 'dataset/image_descriptions.json'
     embeddings_file = 'precomputed_embeddings/openai_embeddings.json'
     test_cases_file = 'dataset/test_cases.json'
+    query_image_folder = 'dataset/query_images'
 
     if not Path(image_folder).exists():
         print(f"Error: Directory {image_folder} does not exist")
@@ -138,10 +144,10 @@ def main():
         print(f"Loaded {len(embeddings)} valid embeddings")
 
     print("\nGenerating test results...")
-    test_results = generate_test_results(embeddings, test_cases_file)
+    test_results = generate_test_results(embeddings, test_cases_file, query_image_folder)
     
     print("\nDisplaying results...")
-    show_test_results(test_results, image_folder)
+    show_test_results(test_results, image_folder, query_image_folder)
 
 if __name__ == "__main__":
     main()
