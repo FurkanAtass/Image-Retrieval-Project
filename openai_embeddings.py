@@ -1,10 +1,12 @@
 import os
 import json
 import numpy as np
+import torch
 from pathlib import Path
-from typing import Optional
+from PIL import Image
 from dotenv import load_dotenv
 from openai import OpenAI
+from transformers import CLIPProcessor, CLIPModel
 from utils import read_image_descriptions, save_embeddings, load_embeddings, show_test_results, rank_images
 from generate_descriptions import generate_image_descriptions
 
@@ -18,7 +20,21 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 # OpenAI embedding model
-EMBEDDING_MODEL = "text-embedding-3-small"
+TEXT_EMBEDDING_MODEL = "text-embedding-3-small"
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+IMAGE_EMBEDDING_MODEL = "openai/clip-vit-base-patch32"
+model = CLIPModel.from_pretrained(IMAGE_EMBEDDING_MODEL).to(DEVICE).eval()
+processor = CLIPProcessor.from_pretrained(IMAGE_EMBEDDING_MODEL)
+
+@torch.no_grad()
+def embed_image(image_path: str) -> torch.Tensor:
+    img = Image.open(image_path).convert("RGB")
+    inputs = processor(images=img, return_tensors="pt").to(DEVICE)
+    v = model.get_image_features(**inputs)  # [1, D]
+    v = v / v.norm(dim=-1, keepdim=True)
+    return v.squeeze(0).cpu()
 
 def embed_text(text: str) -> np.ndarray:
     """
@@ -28,7 +44,7 @@ def embed_text(text: str) -> np.ndarray:
     try:
         response = client.embeddings.create(
             input=text,
-            model=EMBEDDING_MODEL
+            model=TEXT_EMBEDDING_MODEL
         )
         embedding = np.array(response.data[0].embedding)
         # Normalize the embedding
@@ -37,7 +53,7 @@ def embed_text(text: str) -> np.ndarray:
     except Exception as e:
         raise Exception(f"Error creating embedding: {str(e)}")
 
-def compute_embeddings(image_descriptions_file: str, embeddings_file: str) -> list[dict]:
+def compute_embeddings(image_folder: str, image_descriptions_file: str, embeddings_file: str) -> list[dict]:
     """
     Compute text embeddings for all image descriptions and save to a list of dictionaries.
     Only uses text descriptions, no image embeddings.
@@ -53,11 +69,12 @@ def compute_embeddings(image_descriptions_file: str, embeddings_file: str) -> li
         try:
             # Only embed text description (no image embedding)
             text_embedding = embed_text(image_description['description'])
-            
+            image_embedding = embed_image(f"{image_folder}/{image_description['filename']}")
             embeddings.append({
                 'filename': image_description['filename'],
                 'description': image_description['description'],
                 'text_embedding': text_embedding.tolist(),
+                'image_embedding': image_embedding.tolist(),
             })
             print("✓")
             
@@ -97,10 +114,10 @@ def main():
     """
     Main function to compute embeddings and rank images using OpenAI text embeddings.
     """
-    image_folder = 'images'
-    image_descriptions_file = 'image_descriptions.json'
-    embeddings_file = 'openai_embeddings.json'
-    test_cases_file = 'test_cases.json'
+    image_folder = 'dataset/images'
+    image_descriptions_file = 'dataset/image_descriptions.json'
+    embeddings_file = 'precomputed_embeddings/openai_embeddings.json'
+    test_cases_file = 'dataset/test_cases.json'
 
     if not Path(image_folder).exists():
         print(f"Error: Directory {image_folder} does not exist")
@@ -114,12 +131,10 @@ def main():
     if not Path(embeddings_file).exists():
         print(f"Embeddings File {embeddings_file} does not exist")
         print("Computing embeddings...")
-        embeddings = compute_embeddings(image_descriptions_file, embeddings_file)
+        embeddings = compute_embeddings(image_folder, image_descriptions_file, embeddings_file)
     else:
         print(f"Loading embeddings from {embeddings_file}...")
         embeddings = load_embeddings(embeddings_file)
-        # Filter out embeddings with None (errors)
-        embeddings = [e for e in embeddings if e.get('text_embedding') is not None]
         print(f"Loaded {len(embeddings)} valid embeddings")
 
     print("\nGenerating test results...")
