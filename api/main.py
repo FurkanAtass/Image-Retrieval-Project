@@ -19,7 +19,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from openai_embeddings import embed_text, embed_image
+from scripts.openai_embeddings import embed_text, embed_image
 
 # Load .env from project root
 load_dotenv(dotenv_path=project_root / '.env')

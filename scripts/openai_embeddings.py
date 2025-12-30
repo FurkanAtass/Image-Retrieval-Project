@@ -7,8 +7,8 @@ from PIL import Image
 from dotenv import load_dotenv
 from openai import OpenAI
 from transformers import CLIPProcessor, CLIPModel
-from utils import read_image_descriptions, save_embeddings, load_embeddings, show_test_results, rank_images
-from generate_descriptions import generate_image_descriptions
+from scripts.utils import read_image_descriptions, save_embeddings, load_embeddings, show_test_results, rank_images
+from scripts.generate_descriptions import generate_image_descriptions
 
 # Load environment variables from .env file
 load_dotenv()
@@ -118,12 +118,17 @@ def generate_test_results(embeddings: list[dict], test_cases_file: str, query_im
 def main():
     """
     Main function to compute embeddings and rank images using OpenAI text embeddings.
+    Run from project root directory.
     """
-    image_folder = 'dataset/images'
-    image_descriptions_file = 'dataset/image_descriptions.json'
-    embeddings_file = 'precomputed_embeddings/openai_embeddings.json'
-    test_cases_file = 'dataset/test_cases.json'
-    query_image_folder = 'dataset/query_images'
+    # Get project root (parent of scripts directory)
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent
+    
+    image_folder = str(project_root / 'dataset' / 'images')
+    image_descriptions_file = str(project_root / 'dataset' / 'image_descriptions.json')
+    embeddings_file = str(project_root / 'precomputed_embeddings' / 'openai_embeddings.json')
+    test_cases_file = str(project_root / 'dataset' / 'test_cases.json')
+    query_image_folder = str(project_root / 'dataset' / 'query_images')
 
     if not Path(image_folder).exists():
         print(f"Error: Directory {image_folder} does not exist")
