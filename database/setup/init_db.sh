@@ -58,7 +58,13 @@ fi
 # Run Python setup script
 echo ""
 echo "Setting up database schema..."
+cd "$(dirname "$0")/../.."
 python database/setup/setup_db.py
+
+# Load embeddings and create admin user
+echo ""
+echo "Loading embeddings and creating admin user..."
+python database/setup/load_embeddings.py
 
 echo ""
 echo "=========================================="

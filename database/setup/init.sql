@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS images (
     captured_at TIMESTAMP WITH TIME ZONE,
     location JSONB, -- {lat, lon} or {"name": "Vienna"} or null
     metadata JSONB DEFAULT '{}'::jsonb, -- Key-value map for camera, source, etc.
-    image_embedding vector(512), -- CLIP image vector (adjust dimension as needed)
-    text_embedding vector(512), -- Embedding of description (adjust dimension as needed)
+    image_embedding vector(512), -- CLIP image vector
+    text_embedding vector(1536), -- OpenAI text-embedding-3-small vector
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE NULL, -- Soft delete
