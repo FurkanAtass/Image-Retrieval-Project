@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Load embeddings from JSON file into PostgreSQL database.
-Creates admin user if it doesn't exist, then loads all embeddings.
+Loads all embeddings into the images table.
 """
 
 import json
@@ -13,63 +13,24 @@ import psycopg2
 from psycopg2.extras import execute_values
 import numpy as np
 
-# Import user_helpers from same directory
-from user_helpers import create_user, get_db_connection
-
 load_dotenv()
 
-def get_db_config():
-    """Get database configuration from environment variables."""
-    return {
-        'dbname': os.getenv('DB_NAME', 'image_retrieval'),
-        'user': os.getenv('DB_USER', 'imageuser'),
-        'password': os.getenv('DB_PASSWORD', 'imagepass123'),
-        'host': os.getenv('DB_HOST', 'localhost'),
-        'port': os.getenv('DB_PORT', '5432'),
-    }
+def get_db_connection():
+    """Get database connection."""
+    return psycopg2.connect(
+        dbname=os.getenv('DB_NAME', 'image_retrieval'),
+        user=os.getenv('DB_USER', 'imageuser'),
+        password=os.getenv('DB_PASSWORD', 'imagepass123'),
+        host=os.getenv('DB_HOST', 'localhost'),
+        port=os.getenv('DB_PORT', '5432')
+    )
 
-def get_or_create_admin_user():
-    """Get admin user ID, creating it if it doesn't exist."""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    try:
-        # Try to get existing admin user
-        try:
-            cur.execute("SELECT id FROM users WHERE email = %s AND deleted_at IS NULL", ('admin@example.com',))
-            result = cur.fetchone()
-            if result:
-                user_id = result[0]
-                print(f"✓ Found existing admin user (ID: {user_id})")
-                return user_id
-        except Exception as e:
-            print(f"Error checking for admin user: {e}")
-        
-        # Create admin user if it doesn't exist
-        print("Creating admin user...")
-        user_id = create_user('admin@example.com', 'admin123')
-        if user_id:
-            return user_id
-        else:
-            # If create_user failed, try to get it anyway (might have been created concurrently)
-            cur.execute("SELECT id FROM users WHERE email = %s AND deleted_at IS NULL", ('admin@example.com',))
-            result = cur.fetchone()
-            if result:
-                return result[0]
-    except Exception as e:
-        print(f"Error getting or creating admin user: {e}")
-        raise Exception("Failed to create or find admin user")
-    finally:
-        cur.close()
-        conn.close()
-
-def load_embeddings_from_json(json_file: str, user_id: int, images_dir: str = 'dataset/images'):
+def load_embeddings_from_json(json_file: str, images_dir: str = 'dataset/images'):
     """
     Load embeddings from JSON file into database.
     
     Args:
         json_file: Path to the embeddings JSON file
-        user_id: User ID to associate images with
         images_dir: Directory where images are stored (default: 'dataset/images')
     """
     json_path = Path(json_file)
@@ -121,7 +82,6 @@ def load_embeddings_from_json(json_file: str, user_id: int, images_dir: str = 'd
                     image_emb_list = list(image_emb) if hasattr(image_emb, '__iter__') else [image_emb]
             
             images_data.append((
-                user_id,
                 file_path,
                 emb.get('description', ''),
                 json.dumps(emb.get('tags', [])),  # JSONB
@@ -137,10 +97,10 @@ def load_embeddings_from_json(json_file: str, user_id: int, images_dir: str = 'd
         # Insert one by one (pgvector accepts arrays directly)
         insert_query = """
             INSERT INTO images (
-                user_id, file_path, description, tags, captured_at, 
+                file_path, description, tags, captured_at, 
                 location, metadata, text_embedding, image_embedding
-            ) VALUES (%s, %s, %s, %s::jsonb, %s, %s::jsonb, %s::jsonb, %s::vector, %s::vector)
-            ON CONFLICT (user_id, file_path) DO UPDATE SET
+            ) VALUES (%s, %s, %s::jsonb, %s, %s::jsonb, %s::jsonb, %s::vector, %s::vector)
+            ON CONFLICT (file_path) DO UPDATE SET
                 description = EXCLUDED.description,
                 tags = EXCLUDED.tags,
                 metadata = EXCLUDED.metadata,
@@ -168,9 +128,9 @@ def load_embeddings_from_json(json_file: str, user_id: int, images_dir: str = 'd
         print(f"✓ Successfully loaded {len(images_data)} images into database")
         
         # Verify count
-        cur.execute("SELECT COUNT(*) FROM images WHERE user_id = %s AND deleted_at IS NULL", (user_id,))
+        cur.execute("SELECT COUNT(*) FROM images WHERE deleted_at IS NULL")
         count = cur.fetchone()[0]
-        print(f"✓ Total images in database for user {user_id}: {count}")
+        print(f"✓ Total images in database: {count}")
         
     except Exception as e:
         conn.rollback()
@@ -194,11 +154,8 @@ def main():
     print("Loading Embeddings into PostgreSQL")
     print("=" * 60)
     
-    # Get or create admin user
-    user_id = get_or_create_admin_user()
-    
     # Load embeddings with images directory path
-    load_embeddings_from_json(str(json_file), user_id, images_dir=images_dir)
+    load_embeddings_from_json(str(json_file), images_dir=images_dir)
     
     print("\n" + "=" * 60)
     print("✓ Embeddings loaded successfully!")

@@ -1,21 +1,10 @@
 -- Enable pgvector extension
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- Create USERS table
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL, -- Bcrypt hashed password
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP WITH TIME ZONE NULL -- Soft delete
-);
-
 -- Create IMAGES table
 CREATE TABLE IF NOT EXISTS images (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    file_path VARCHAR(500) NOT NULL,
+    file_path VARCHAR(500) NOT NULL UNIQUE,
     description TEXT,
     tags JSONB DEFAULT '[]'::jsonb, -- Array of strings or objects with scores
     captured_at TIMESTAMP WITH TIME ZONE,
@@ -25,14 +14,12 @@ CREATE TABLE IF NOT EXISTS images (
     text_embedding vector(1536), -- OpenAI text-embedding-3-small vector
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP WITH TIME ZONE NULL, -- Soft delete
-    UNIQUE(user_id, file_path)
+    deleted_at TIMESTAMP WITH TIME ZONE NULL -- Soft delete
 );
 
 -- Create FACES table
 CREATE TABLE IF NOT EXISTS faces (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     image_id INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
     position JSONB NOT NULL, -- Normalized bbox: {x, y, w, h}
     face_embedding vector(512), -- Face embedding vector (adjust dimension as needed)
@@ -44,12 +31,6 @@ CREATE TABLE IF NOT EXISTS faces (
 );
 
 -- Create indexes for better query performance
-
--- Index on users for email lookups
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE deleted_at IS NULL;
-
--- Index on images for user lookups
-CREATE INDEX IF NOT EXISTS idx_images_user_id ON images(user_id) WHERE deleted_at IS NULL;
 
 -- Index on images for file_path lookups
 CREATE INDEX IF NOT EXISTS idx_images_file_path ON images(file_path) WHERE deleted_at IS NULL;
@@ -70,9 +51,6 @@ CREATE INDEX IF NOT EXISTS idx_images_text_embedding ON images
 
 -- Index on faces for image lookups
 CREATE INDEX IF NOT EXISTS idx_faces_image_id ON faces(image_id) WHERE deleted_at IS NULL;
-
--- Index on faces for user lookups
-CREATE INDEX IF NOT EXISTS idx_faces_user_id ON faces(user_id) WHERE deleted_at IS NULL;
 
 -- Index on faces for person_id (for clustering/labeling)
 CREATE INDEX IF NOT EXISTS idx_faces_person_id ON faces(person_id) 
@@ -99,9 +77,6 @@ END;
 $$ language 'plpgsql';
 
 -- Triggers to automatically update updated_at
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_images_updated_at BEFORE UPDATE ON images
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -109,12 +84,8 @@ CREATE TRIGGER update_faces_updated_at BEFORE UPDATE ON faces
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Comments for documentation
-COMMENT ON TABLE users IS 'User accounts for the image retrieval system';
 COMMENT ON TABLE images IS 'Stored images with embeddings and metadata';
 COMMENT ON TABLE faces IS 'Detected faces in images with embeddings';
-COMMENT ON COLUMN users.email IS 'Unique email address for user authentication';
-COMMENT ON COLUMN users.password_hash IS 'Bcrypt hashed password (never store plain text passwords)';
-COMMENT ON COLUMN users.deleted_at IS 'Soft delete timestamp (NULL = active, timestamp = deleted)';
 COMMENT ON COLUMN images.tags IS 'Array of tag strings or objects with scores: ["tag1", "tag2"] or [{"tag": "tag1", "score": 0.9}]';
 COMMENT ON COLUMN images.location IS 'Location data: {"lat": 48.2082, "lon": 16.3738} or {"name": "Vienna"}';
 COMMENT ON COLUMN images.deleted_at IS 'Soft delete timestamp (NULL = active, timestamp = deleted)';

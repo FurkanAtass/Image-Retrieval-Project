@@ -102,10 +102,8 @@ def generate_image_descriptions(images_dir, output_json):
     print(f"✓ Successfully created {output_json} with {len(results)} image descriptions!")
 
 if __name__ == '__main__':
-    # Get project root (parent of scripts directory)
     script_dir = Path(__file__).parent
-    project_root = script_dir.parent
-    images_dir = project_root / 'dataset' / 'images'
-    output_json = project_root / 'dataset' / 'image_descriptions.json'
+    images_dir = script_dir / 'images'
+    output_json = script_dir / 'image_descriptions.json'
     
-    generate_image_descriptions(str(images_dir), str(output_json))
+    generate_image_descriptions(images_dir, output_json)

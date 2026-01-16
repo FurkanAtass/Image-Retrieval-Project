@@ -88,7 +88,6 @@ def smart_threshold_selection(scores: List[float], min_score: float = 0.2, gap_t
 class SearchRequest(BaseModel):
     query: Optional[str] = None
     query_image_path: Optional[str] = None
-    user_id: int = 1  # Default to admin user
     alpha: float = 0.7  # For hybrid search (0.0 = image only, 1.0 = text only)
     min_score: Optional[float] = 0.3  # Minimum similarity score
     gap_threshold: Optional[float] = 0.15  # Gap threshold for smart selection
@@ -136,7 +135,6 @@ async def search_images(
     # GET parameters (optional, for GET requests)
     query: Optional[str] = Query(None, description="Text query to search for"),
     query_image_path: Optional[str] = Query(None, description="Path to query image file"),
-    user_id: int = Query(1, description="User ID"),
     alpha: float = Query(0.7, description="For hybrid search (0.0 = image only, 1.0 = text only)"),
     min_score: Optional[float] = Query(0.3, description="Minimum similarity score"),
     gap_threshold: Optional[float] = Query(0.15, description="Gap threshold for smart selection"),
@@ -149,6 +147,18 @@ async def search_images(
     - Only image query → "image"
     - Both queries → "fuse"
     """
+    # Handle both GET (query params) and POST (request body) requests
+    if request is None:
+        # GET request - use query parameters
+        request = SearchRequest(
+            query=query,
+            query_image_path=query_image_path,
+            alpha=alpha,
+            min_score=min_score,
+            gap_threshold=gap_threshold,
+            max_results=max_results
+        )
+    
     if not request.query and not request.query_image_path:
         raise HTTPException(status_code=400, detail="Either 'query' (text) or 'query_image_path' must be provided")
     
@@ -200,22 +210,22 @@ async def search_images(
                 SELECT id, file_path,
                        1 - (text_embedding <=> %s::vector) AS score
                 FROM images
-                WHERE user_id = %s AND deleted_at IS NULL
+                WHERE deleted_at IS NULL
                 ORDER BY text_embedding <=> %s::vector
                 LIMIT %s
             """
-            params = (text_embedding, request.user_id, text_embedding, request.max_results)
+            params = (text_embedding, text_embedding, request.max_results)
         
         elif embedding_type == "image":
             query_sql = """
                 SELECT id, file_path,
                        1 - (image_embedding <=> %s::vector) AS score
                 FROM images
-                WHERE user_id = %s AND deleted_at IS NULL
+                WHERE deleted_at IS NULL
                 ORDER BY image_embedding <=> %s::vector
                 LIMIT %s
             """
-            params = (image_embedding, request.user_id, image_embedding, request.max_results)
+            params = (image_embedding, image_embedding, request.max_results)
         
         else:  # fuse/hybrid
             # For hybrid, use a weighted combination
@@ -224,12 +234,12 @@ async def search_images(
                        %s * (1 - (text_embedding <=> %s::vector)) + 
                        %s * (1 - (image_embedding <=> %s::vector)) AS score
                 FROM images
-                WHERE user_id = %s AND deleted_at IS NULL
+                WHERE deleted_at IS NULL
                 ORDER BY score DESC
                 LIMIT %s
             """
             alpha = request.alpha
-            params = (alpha, text_embedding, 1-alpha, image_embedding, request.user_id, request.max_results)
+            params = (alpha, text_embedding, 1-alpha, image_embedding, request.max_results)
         
         # Execute query
         cur.execute(query_sql, params)
@@ -271,7 +281,6 @@ async def search_images(
 @app.get("/search/text", response_model=SearchResponse)
 async def search_by_text(
     query: str = Query(..., description="Text query to search for"),
-    user_id: int = Query(1, description="User ID"),
     min_score: Optional[float] = Query(0.3, description="Minimum similarity score"),
     gap_threshold: Optional[float] = Query(0.15, description="Gap threshold for smart selection"),
     max_results: Optional[int] = Query(50, description="Maximum results to consider")
@@ -279,7 +288,6 @@ async def search_by_text(
     """Search images by text query."""
     request = SearchRequest(
         query=query,
-        user_id=user_id,
         min_score=min_score,
         gap_threshold=gap_threshold,
         max_results=max_results
@@ -289,7 +297,6 @@ async def search_by_text(
 @app.get("/search/image", response_model=SearchResponse)
 async def search_by_image(
     query_image_path: str = Query(..., description="Path to query image"),
-    user_id: int = Query(1, description="User ID"),
     min_score: Optional[float] = Query(0.3, description="Minimum similarity score"),
     gap_threshold: Optional[float] = Query(0.15, description="Gap threshold for smart selection"),
     max_results: Optional[int] = Query(50, description="Maximum results to consider")
@@ -297,7 +304,6 @@ async def search_by_image(
     """Search images by image query."""
     request = SearchRequest(
         query_image_path=query_image_path,
-        user_id=user_id,
         min_score=min_score,
         gap_threshold=gap_threshold,
         max_results=max_results
